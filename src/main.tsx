@@ -17,6 +17,7 @@ type Row = {
   college: string;
   department: string;
   year: string;
+  foodPreference: string;
   status: 'pending' | 'added';
   checkedIn: boolean;
   team: string;
@@ -26,9 +27,9 @@ type Row = {
 type Session = { master: boolean; email: string; eventId?: string; eventName?: string; role: string };
 
 const csv = (rows: Row[]) => {
-  const head = ['Name', 'Team', 'Event', 'Email', 'Phone', 'College', 'Department', 'Year', 'WhatsApp Status', 'Check-in Status', 'Registration ID'];
+  const head = ['Name', 'Team', 'Event', 'Email', 'Phone', 'College', 'Department', 'Year', 'Food Preference', 'WhatsApp Status', 'Check-in Status', 'Registration ID'];
   const esc = (v: unknown) => `"${String(v ?? '').replaceAll('"', '""')}"`;
-  return [head, ...rows.map(r => [r.name, r.team, r.eventName, r.email, r.phone, r.college, r.department, r.year, r.status, r.checkedIn ? 'Checked in' : 'Not checked in', r.registrationCode])]
+  return [head, ...rows.map(r => [r.name, r.team, r.eventName, r.email, r.phone, r.college, r.department, r.year, r.foodPreference, r.status, r.checkedIn ? 'Checked in' : 'Not checked in', r.registrationCode])]
     .map(r => r.map(esc).join(','))
     .join('\n');
 };
@@ -84,7 +85,7 @@ function App() {
       }
 
       const [{ data: participants, error: participantError }, { data: teams, error: teamError }] = await Promise.all([
-        supabase.from('participants').select('id,registration_id,name,email,phone,college,department,year,whatsapp_added').in('registration_id', registrationIds),
+        supabase.from('participants').select('id,registration_id,name,email,phone,college,department,year,food_preference,whatsapp_added').in('registration_id', registrationIds),
         supabase.from('teams').select('id,registration_id,team_name').in('registration_id', registrationIds),
       ]);
       if (participantError) throw participantError;
@@ -119,6 +120,7 @@ function App() {
           college: p.college ?? '',
           department: p.department ?? '',
           year: p.year ?? '',
+          foodPreference: p.food_preference ?? '—',
           status: (member?.whatsapp_added ?? p.whatsapp_added) ? 'added' : 'pending',
           checkedIn: Boolean(reg?.checked_in),
           team: team?.team_name ?? '—',
@@ -264,7 +266,7 @@ function App() {
     {message && <div className="message">{message}</div>}
     <section className="stats"><div><strong>{rows.length}</strong><span>Total participants</span></div><div><strong>{added}</strong><span>WhatsApp added</span></div><div><strong>{pending}</strong><span>Pending</span></div><div><strong>{checkedIn}</strong><span>Checked in</span></div></section>
     <section className="toolbar"><div className="search"><Search size={17}/><input value={q} onChange={e => setQ(e.target.value)} placeholder="Search name, team, phone, college..."/></div><div className="filters">{(['all','pending','added'] as const).map(s => <button className={status === s ? 'active' : ''} onClick={() => setStatus(s)} key={s}>{s === 'all' ? 'All' : s === 'pending' ? 'Pending' : 'Added'}</button>)}</div></section>
-    <div className="table-wrap"><table><thead><tr>{[['name','Name'],['team','Team'],['eventName','Event'],['college','College'],['status','WhatsApp']].map(([k,l]) => <th onClick={() => setSort(k as keyof Row)} key={k}>{l}</th>)}<th>Contact</th></tr></thead><tbody>{visible.map(r => <tr key={r.participantId}><td><b>{r.name}</b><small>{r.email}</small></td><td>{r.team}</td><td>{r.eventName}<small>{r.registrationType} · {r.registrationCode}</small></td><td>{r.college}<small>{r.department} · Year {r.year}</small></td><td><button className={`status ${r.status}`} onClick={() => updateWhatsApp(r)}>{r.status === 'added' ? <CheckCircle2 size={15}/> : <Clock3 size={15}/>} {r.status === 'added' ? 'Added' : 'Pending'}</button></td><td><a className="wa" href={`https://wa.me/${r.phone.replace(/\D/g, '').replace(/^0/, '91')}`} target="_blank" rel="noreferrer"><MessageCircle size={15}/> WhatsApp</a></td></tr>)}</tbody></table>{loading && <div className="table-loading">Loading live data...</div>}{!loading && !visible.length && <div className="table-loading">No participants found for this access.</div>}</div>
+    <div className="table-wrap"><table><thead><tr>{[['name','Name'],['team','Team'],['eventName','Event'],['college','College'],['status','WhatsApp']].map(([k,l]) => <th onClick={() => setSort(k as keyof Row)} key={k}>{l}</th> )}<th>Food Preference</th><th>Contact</th></tr></thead><tbody>{visible.map(r => <tr key={r.participantId}><td><b>{r.name}</b><small>{r.email}</small></td><td>{r.team}</td><td>{r.eventName}<small>{r.registrationType} · {r.registrationCode}</small></td><td>{r.college}<small>{r.department} · Year {r.year}</small></td><td><span className={`food ${r.foodPreference.toLowerCase().includes('non') ? 'nonveg' : 'veg'}`}>{r.foodPreference}</span></td><td><button className={`status ${r.status}`} onClick={() => updateWhatsApp(r)}>{r.status === 'added' ? <CheckCircle2 size={15}/> : <Clock3 size={15}/>} {r.status === 'added' ? 'Added' : 'Pending'}</button></td><td><a className="wa" href={`https://wa.me/${r.phone.replace(/\D/g, '').replace(/^0/, '91')}`} target="_blank" rel="noreferrer"><MessageCircle size={15}/> WhatsApp</a></td></tr>)}</tbody></table>{loading && <div className="table-loading">Loading live data...</div>}{!loading && !visible.length && <div className="table-loading">No participants found for this access.</div>}</div>
   </main>;
 }
 
